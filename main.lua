@@ -1,26 +1,34 @@
--- WeroHub Instant Wins - Ultimate Sink & Lock Position
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- Tọa độ chuẩn từ ảnh của bạn (trừ 3 đơn vị trục Y để lún sâu hẳn xuống lòng đất/bệ đỡ)
-local targetPosition = Vector3.new(-8077.64, 278.79 - 3, 2740.76)
+-- Bảng lưu tọa độ chuẩn của các Thế giới (đã trừ 3 đơn vị trục Y để lún sâu vào vị trí)
+local worldCoordinates = {
+    [1] = Vector3.new(-9460.72, 386.29 - 3, -253.58),  -- World 1 (Bức tranh 1)
+    [2] = Vector3.new(-3604.97, 151.59 - 3, -9378.37), -- World 2 (Bức tranh 2)
+    [3] = Vector3.new(-8077.64, 278.79 - 3, 2740.76),  -- World 3 (Tọa độ mặc định cũ)
+    [4] = Vector3.new(-7757.21, 17.75 - 3, 5739.80),   -- World 4 (Bức tranh 3)
+    [5] = Vector3.new(-2830.08, 283.79 - 3, 7802.95)   -- World 5 (Bức tranh 4)
+}
+
+local selectedWorld = 1 -- Mặc định là World 1
+local targetPosition = worldCoordinates[selectedWorld]
 
 -- Xóa giao diện cũ nếu đã tồn tại
-if CoreGui:FindFirstChild("WeroHubUltimate") then
-    CoreGui.WeroHubUltimate:Destroy()
+if CoreGui:FindFirstChild("CoprimeHubUltimate") then
+    CoreGui.CoprimeHubUltimate:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "WeroHubUltimate"
+ScreenGui.Name = "CoprimeHubUltimate"
 ScreenGui.Parent = CoreGui
 
 -- Khung Menu chính
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 360, 0, 400)
-MainFrame.Position = UDim2.new(0.6, -180, 0.25, -200)
+MainFrame.Size = UDim2.new(0, 360, 0, 460)
+MainFrame.Position = UDim2.new(0.6, -180, 0.25, -230)
 MainFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -35,7 +43,7 @@ MainCorner.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 42)
 Title.BackgroundColor3 = Color3.fromRGB(32, 32, 44)
-Title.Text = "  coprime Instant Wins"
+Title.Text = "   Coprime Auto Win"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 15
 Title.Font = Enum.Font.GothamBold
@@ -61,10 +69,68 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
+-- 0. Khung chọn Thế giới (World Selector)
+local WorldFrame = Instance.new("Frame")
+WorldFrame.Size = UDim2.new(0.92, 0, 0, 50)
+WorldFrame.Position = UDim2.new(0.04, 0, 0.11, 0)
+WorldFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 44)
+WorldFrame.Parent = MainFrame
+
+local WorldCorner = Instance.new("UICorner")
+WorldCorner.CornerRadius = UDim.new(0, 8)
+WorldCorner.Parent = WorldFrame
+
+local WorldLabel = Instance.new("TextLabel")
+WorldLabel.Size = UDim2.new(1, 0, 0, 18)
+WorldLabel.Position = UDim2.new(0, 0, 0, 3)
+WorldLabel.BackgroundTransparency = 1
+WorldLabel.Text = "Chọn Thế giới (World 1 - 5):"
+WorldLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+WorldLabel.TextSize = 12
+WorldLabel.Font = Enum.Font.GothamMedium
+WorldLabel.Parent = WorldFrame
+
+-- Tạo 5 nút bấm chọn World 1 tới 5 nằm ngang
+local worldButtons = {}
+for i = 1, 5 do
+    local wBtn = Instance.new("TextButton")
+    wBtn.Size = UDim2.new(0, 58, 0, 24)
+    wBtn.Position = UDim2.new(0, 6 + (i - 1) * 63, 0, 22)
+    wBtn.BackgroundColor3 = (i == selectedWorld) and Color3.fromRGB(114, 9, 183) or Color3.fromRGB(45, 42, 70)
+    wBtn.Text = "W " .. i
+    wBtn.TextColor3 = (i == selectedWorld) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+    wBtn.TextSize = 12
+    wBtn.Font = Enum.Font.GothamBold
+    wBtn.Parent = WorldFrame
+    
+    local wBtnCorner = Instance.new("UICorner")
+    wBtnCorner.CornerRadius = UDim.new(0, 5)
+    wBtnCorner.Parent = wBtn
+    
+    worldButtons[i] = wBtn
+    
+    wBtn.MouseButton1Click:Connect(function()
+        selectedWorld = i
+        targetPosition = worldCoordinates[selectedWorld]
+        
+        -- Cập nhật lại màu sắc giao diện các nút World
+        for idx, btn in ipairs(worldButtons) do
+            if idx == selectedWorld then
+                btn.BackgroundColor3 = Color3.fromRGB(114, 9, 183)
+                btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            else
+                btn.BackgroundColor3 = Color3.fromRGB(45, 42, 70)
+                btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            end
+        end
+        print("Đã chuyển sang Thế giới: " .. selectedWorld)
+    end)
+end
+
 -- 1. Nút khóa chặt vị trí lún & chống Tele
 local LockSinkBtn = Instance.new("TextButton")
 LockSinkBtn.Size = UDim2.new(0.92, 0, 0, 40)
-LockSinkBtn.Position = UDim2.new(0.04, 0, 0.13, 0)
+LockSinkBtn.Position = UDim2.new(0.04, 0, 0.24, 0)
 LockSinkBtn.BackgroundColor3 = Color3.fromRGB(45, 42, 70)
 LockSinkBtn.Text = "OFF - Lock Sink Position"
 LockSinkBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -79,7 +145,7 @@ LockSinkCorner.Parent = LockSinkBtn
 -- 2. Nút Fly Camera
 local FlyCamBtn = Instance.new("TextButton")
 FlyCamBtn.Size = UDim2.new(0.92, 0, 0, 40)
-FlyCamBtn.Position = UDim2.new(0.04, 0, 0.24, 0)
+FlyCamBtn.Position = UDim2.new(0.04, 0, 0.35, 0)
 FlyCamBtn.BackgroundColor3 = Color3.fromRGB(45, 42, 70)
 FlyCamBtn.Text = "OFF - Fly Camera Only"
 FlyCamBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -94,7 +160,7 @@ FlyCamCorner.Parent = FlyCamBtn
 -- 3. Nút Auto Di chuyển Trái/Phải liên tục
 local StrafeBtn = Instance.new("TextButton")
 StrafeBtn.Size = UDim2.new(0.92, 0, 0, 40)
-StrafeBtn.Position = UDim2.new(0.04, 0, 0.35, 0)
+StrafeBtn.Position = UDim2.new(0.04, 0, 0.46, 0)
 StrafeBtn.BackgroundColor3 = Color3.fromRGB(45, 42, 70)
 StrafeBtn.Text = "OFF - Auto Left/Right Move"
 StrafeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -109,7 +175,7 @@ StrafeCorner.Parent = StrafeBtn
 -- 4. Nút Anti-AFK (Chạy loadstring của bạn)
 local AntiAfkBtn = Instance.new("TextButton")
 AntiAfkBtn.Size = UDim2.new(0.92, 0, 0, 40)
-AntiAfkBtn.Position = UDim2.new(0.04, 0, 0.46, 0)
+AntiAfkBtn.Position = UDim2.new(0.04, 0, 0.57, 0)
 AntiAfkBtn.BackgroundColor3 = Color3.fromRGB(45, 42, 70)
 AntiAfkBtn.Text = "OFF - Anti AFK Script"
 AntiAfkBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -124,7 +190,7 @@ AntiAfkCorner.Parent = AntiAfkBtn
 -- 5. Khung Tốc độ (Speed Section)
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Size = UDim2.new(0.92, 0, 0, 65)
-SpeedFrame.Position = UDim2.new(0.04, 0, 0.58, 0)
+SpeedFrame.Position = UDim2.new(0.04, 0, 0.68, 0)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 44)
 SpeedFrame.Parent = MainFrame
 
@@ -178,17 +244,17 @@ ToggleCorner.Parent = SpeedToggle
 ---------------------------------------------------
 
 -- 1. Logic khóa chặt tuyệt đối vị trí lún & chống tele game khác
-_G.WeroLockSink = false
+_G.CoprimeLockSink = false
 LockSinkBtn.MouseButton1Click:Connect(function()
-    _G.WeroLockSink = not _G.WeroLockSink
-    if _G.WeroLockSink then
+    _G.CoprimeLockSink = not _G.CoprimeLockSink
+    if _G.CoprimeLockSink then
         LockSinkBtn.Text = "ON - Lock Sink Position"
         LockSinkBtn.BackgroundColor3 = Color3.fromRGB(114, 9, 183)
         LockSinkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         
         task.spawn(function()
-            while _G.WeroLockSink do
-                if not _G.WeroStrafe then
+            while _G.CoprimeLockSink do
+                if not _G.CoprimeStrafe then
                     local char = player.Character
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         local rootPart = char.HumanoidRootPart
@@ -197,7 +263,7 @@ LockSinkBtn.MouseButton1Click:Connect(function()
                         rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                     end
                 end
-                task.wait(0.05) -- Tần suất cực nhanh để chống mọi nỗ lực tele của game
+                task.wait(0.05)
             end
         end)
     else
@@ -208,14 +274,14 @@ LockSinkBtn.MouseButton1Click:Connect(function()
 end)
 
 -- 2. Logic Fly Camera
-_G.WeroFlyCam = false
+_G.CoprimeFlyCam = false
 local camera = workspace.CurrentCamera
 local camConnection
 local flySpeed = 50
 
 FlyCamBtn.MouseButton1Click:Connect(function()
-    _G.WeroFlyCam = not _G.WeroFlyCam
-    if _G.WeroFlyCam then
+    _G.CoprimeFlyCam = not _G.CoprimeFlyCam
+    if _G.CoprimeFlyCam then
         FlyCamBtn.Text = "ON - Fly Camera Only"
         FlyCamBtn.BackgroundColor3 = Color3.fromRGB(114, 9, 183)
         FlyCamBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -251,16 +317,16 @@ FlyCamBtn.MouseButton1Click:Connect(function()
 end)
 
 -- 3. Logic Auto Di chuyển Trái/Phải liên tục quanh tọa độ
-_G.WeroStrafe = false
+_G.CoprimeStrafe = false
 StrafeBtn.MouseButton1Click:Connect(function()
-    _G.WeroStrafe = not _G.WeroStrafe
-    if _G.WeroStrafe then
+    _G.CoprimeStrafe = not _G.CoprimeStrafe
+    if _G.CoprimeStrafe then
         StrafeBtn.Text = "ON - Auto Left/Right Move"
         StrafeBtn.BackgroundColor3 = Color3.fromRGB(114, 9, 183)
         StrafeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         
         task.spawn(function()
-            while _G.WeroStrafe do
+            while _G.CoprimeStrafe do
                 local char = player.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local rootPart = char.HumanoidRootPart
@@ -268,7 +334,7 @@ StrafeBtn.MouseButton1Click:Connect(function()
                     rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                     task.wait(0.4)
                     
-                    if not _G.WeroStrafe then break end
+                    if not _G.CoprimeStrafe then break end
                     
                     rootPart.CFrame = CFrame.new(targetPosition + Vector3.new(-2, 0, 0))
                     rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
@@ -286,10 +352,10 @@ StrafeBtn.MouseButton1Click:Connect(function()
 end)
 
 -- 4. Logic Anti-AFK (Chạy loadstring của bạn)
-_G.WeroAntiAfk = false
+_G.CoprimeAntiAfk = false
 AntiAfkBtn.MouseButton1Click:Connect(function()
-    _G.WeroAntiAfk = not _G.WeroAntiAfk
-    if _G.WeroAntiAfk then
+    _G.CoprimeAntiAfk = not _G.CoprimeAntiAfk
+    if _G.CoprimeAntiAfk then
         AntiAfkBtn.Text = "ON - Anti AFK Script"
         AntiAfkBtn.BackgroundColor3 = Color3.fromRGB(114, 9, 183)
         AntiAfkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -305,16 +371,16 @@ AntiAfkBtn.MouseButton1Click:Connect(function()
 end)
 
 -- 5. Logic Tốc độ
-_G.WeroSpeed = false
+_G.CoprimeSpeed = false
 SpeedToggle.MouseButton1Click:Connect(function()
-    _G.WeroSpeed = not _G.WeroSpeed
-    if _G.WeroSpeed then
+    _G.CoprimeSpeed = not _G.CoprimeSpeed
+    if _G.CoprimeSpeed then
         SpeedToggle.Text = "ON"
         SpeedToggle.BackgroundColor3 = Color3.fromRGB(76, 201, 240)
         SpeedToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
         
         task.spawn(function()
-            while _G.WeroSpeed do
+            while _G.CoprimeSpeed do
                 local char = player.Character
                 if char and char:FindFirstChild("Humanoid") then
                     local speedVal = tonumber(SpeedBox.Text) or 35
